@@ -14,7 +14,6 @@
     <ProjectGuid>{AC206DB4-58FF-41C8-A79E-4CF031DF84C3}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>eventServer</RootNamespace>
-    <WorkRoot>c:\work\src\</WorkRoot>
     <BoostDir>$(WorkRoot)boost_1_56_0_32bit\</BoostDir>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
