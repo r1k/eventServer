@@ -23,6 +23,9 @@ public:
         m_server.init_asio();
         m_server.set_open_handler(bind(&ClientWebSocketHandler::on_open, this, _1));
         m_server.set_close_handler(bind(&ClientWebSocketHandler::on_close, this, _1));
+
+        m_server.set_access_channels(websocketpp::log::alevel::none);
+        m_server.set_error_channels(websocketpp::log::elevel::rerror);
     }
 
     ~ClientWebSocketHandler()
