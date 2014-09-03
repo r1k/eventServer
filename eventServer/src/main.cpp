@@ -6,6 +6,7 @@
 #include "ClientWebSocketHandler.h"
 #include "EventEngine.h"
 #include "HttpServer.h"
+#include "CommandInterpreter.h"
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>

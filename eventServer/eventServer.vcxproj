@@ -120,6 +120,7 @@
     <ClInclude Include="src\boost_http\server\server.hpp" />
     <ClInclude Include="src\ClientConnectionHandler.h" />
     <ClInclude Include="src\ClientWebSocketHandler.h" />
+    <ClInclude Include="src\CommandInterpreter.h" />
     <ClInclude Include="src\CommandLineParse.h" />
     <ClInclude Include="src\EventEngine.h" />
     <ClInclude Include="src\HttpServer.h" />
