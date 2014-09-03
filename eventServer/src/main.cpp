@@ -222,9 +222,7 @@ int main(int argc, char** argv)
 
     const int httpReqPort = basePort;
     const int webSocketPort = basePort + 1;
-
-    CIpAddress test(multicastIPAddress);
-
+    
     if (!okay)
     {
         cerr << "Incorrect usage:" << endl;
@@ -241,7 +239,7 @@ int main(int argc, char** argv)
     bool deadInTheWater = false;
     while (!deadInTheWater)
     {
-        HTTPServer httpServer("0.0.0.0", httpReqPort, doc_root);
+        //HTTPServer httpServer("0.0.0.0", httpReqPort, doc_root);
         ClientWebSocketHandler webSockHander;
         appEngine server(multicastIPAddress, 
                          multicastPortNumber, 
