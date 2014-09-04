@@ -7,6 +7,7 @@
 
 #include "_no_copy.h"
 
+// Interface classes (sort of)
 class Command
 {
 public:
@@ -32,11 +33,17 @@ class ui : public _no_copy
 {
 public:
     virtual void AddCommand(Command* c) = 0;
-    virtual Command* GetCommand(std::string name) = 0;
+    virtual Command* GetCommand(const std::string& name) = 0;
 
-    virtual void write(std::string s) = 0;
+    virtual void write(const std::string& s) = 0;
+
+    virtual std::list<Command*>& GetCommandList() = 0;
 };
 
+
+// Now for the inplementations
+
+// a couple of  basic commands
 class cmdOpen : public Command
 {
 public:
@@ -59,6 +66,31 @@ public:
     }
 };
 
+class cmdHelp : public Command
+{
+private:
+    ui* const commandUI;
+public:
+    cmdHelp(ui *const u) :
+        Command("help", "displays the commands"),
+        commandUI(u)
+    {
+    }
+
+    void Run()
+    {
+        commandUI->write("List of commands");
+
+        std::list<Command *>& cmds = commandUI->GetCommandList();
+        for (auto cmd : cmds)
+        {
+            stringstream ss;
+            ss << "\t" << cmd->get_Name() << "\t\t" << cmd->get_Description;
+            commandUI->write(ss.str());
+        }
+    }
+};
+
 class CommandInterface : public ui
 {
 public:
@@ -66,7 +98,9 @@ public:
         instream(i),
         outstream(o)
     {
-        LoadCommands();
+        LoadInitialCommands();
+
+        AddCommand(new cmdHelp(this));
     }
 private:
     // Array to hold list of commands
@@ -78,15 +112,17 @@ private:
     std::ostream& outstream;
 
     //Loads the commands to arrylist
-    void LoadCommands()
+    void LoadInitialCommands()
     {
         std::lock_guard<std::mutex> lock(listofCommands_mutex);
         listOfCommands.push_back(new cmdOpen());
         listOfCommands.push_back(new cmdClose());
     }
 
+    bool done = false;
+
 public:
-    virtual Command* GetCommand(std::string name)
+    virtual Command* GetCommand(const std::string& name)
     {
         std::lock_guard<std::mutex> lock(listofCommands_mutex);
         for (auto item : listOfCommands)
@@ -99,13 +135,18 @@ public:
         return nullptr; //return if no commands are found
     }
 
+    std::list<Command*>& GetCommandList()
+    {
+        return listOfCommands;
+    }
+
     virtual void AddCommand(Command* c)
     {
         std::lock_guard<std::mutex> lock(listofCommands_mutex);
         listOfCommands.push_back(c);
     }
 
-    virtual void write(std::string s)
+    virtual void write(const std::string& s)
     {
         std::lock_guard<std::mutex> lock(outstream_mutex);
         outstream << s << "\n";
@@ -116,9 +157,31 @@ public:
         return string("");
     }
 
-    void run()
+    int run()
     {
+        const std::string prompt(">>>");
+        try
+        {
+            write("Welcome.");
+            write("eventServer command prompt:");
 
+            while (!done)
+            {
+                // output prompt
+                write(prompt);
+                // read a line
+                // work out what command it is
+                // execute command
+
+                // rinse repeat
+            }
+
+            return 0;
+        }
+        catch (...)
+        {
+            return -1;
+        }
     }
 };
 
