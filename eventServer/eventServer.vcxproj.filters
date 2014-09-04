@@ -54,6 +54,9 @@
     <ClCompile Include="src\ClientWebSocketHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\CommandInterpreter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\boost_http\server\connection.hpp">

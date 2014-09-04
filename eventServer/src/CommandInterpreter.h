@@ -1,13 +1,20 @@
 #pragma once
 #include <string>
+#include <sstream>
 #include <list>
 #include <iostream>
-
 #include <mutex>
+
+#include <vector>
 
 #include "_no_copy.h"
 
+class ui;
+class Command;
 // Interface classes (sort of)
+typedef std::list<Command*> command_object_list_t;
+typedef std::vector<std::string> command_list_t;
+
 class Command
 {
 public:
@@ -17,6 +24,7 @@ public:
     ~Command() {}
 
     virtual void Run() = 0;
+    virtual void Run(const command_list_t& args) = 0;
 
     std::string get_Name() { return name; }
     void set_Name(std::string value) { name = value; }
@@ -24,7 +32,11 @@ public:
     std::string get_Description() { return description; }
     void set_Description(std::string value) { description = value; }
 
+    void set_ui(ui *const _ui) { UI = _ui; }
+
 protected:
+
+    ui *UI;
     std::string name;
     std::string description;
 };
@@ -34,10 +46,11 @@ class ui : public _no_copy
 public:
     virtual void AddCommand(Command* c) = 0;
     virtual Command* GetCommand(const std::string& name) = 0;
+    virtual command_object_list_t& GetCommandList() = 0;
 
-    virtual void write(const std::string& s) = 0;
+    virtual void writeline(const std::string& s) = 0;
 
-    virtual std::list<Command*>& GetCommandList() = 0;
+    virtual void stop() = 0;
 };
 
 
@@ -51,8 +64,9 @@ public:
 
     void Run()
     {
-        std::cout << "running open command";
+        UI->writeline("running open command");
     }
+    void Run(const command_list_t& args) { Run(); }
 };
 
 class cmdClose : public Command
@@ -62,139 +76,79 @@ public:
 
     void Run()
     {
-        std::cout << "running close command";
+        UI->writeline("running close command");
     }
+    void Run(const command_list_t& args) { Run(); }
 };
 
 class cmdHelp : public Command
 {
-private:
-    ui* const commandUI;
 public:
-    cmdHelp(ui *const u) :
-        Command("help", "displays the commands"),
-        commandUI(u)
-    {
-    }
+    cmdHelp() : Command("help", "displays the commands") {}
 
     void Run()
     {
-        commandUI->write("List of commands");
+        UI->writeline("List of commands");
 
-        std::list<Command *>& cmds = commandUI->GetCommandList();
+        std::list<Command *>& cmds = UI->GetCommandList();
         for (auto cmd : cmds)
         {
-            stringstream ss;
-            ss << "\t" << cmd->get_Name() << "\t\t" << cmd->get_Description;
-            commandUI->write(ss.str());
+            std::stringstream ss;
+            ss << "\t" << cmd->get_Name();
+            UI->writeline(ss.str());
+        }
+    }
+    void Run(const command_list_t& args)
+    {
+        std::list<Command *>& cmds = UI->GetCommandList();
+        for (auto cmd : cmds)
+        {
+            std::string cmd_name = cmd->get_Name();
+            if (cmd_name.compare(0, cmd_name.length(), args[0]) == 0)
+            {
+                std::stringstream ss;
+                ss << "\t" << cmd->get_Name() << "\t\t-\t\t" << cmd->get_Description();
+                UI->writeline(ss.str());
+            }
         }
     }
 };
 
 class CommandInterface : public ui
 {
-public:
-    CommandInterface(std::istream& i=std::cin, std::ostream &o=std::cout) :
-        instream(i),
-        outstream(o)
-    {
-        LoadInitialCommands();
-
-        AddCommand(new cmdHelp(this));
-    }
 private:
     // Array to hold list of commands
-    std::list<Command*> listOfCommands;
+    command_object_list_t listOfCommands;
     std::mutex listofCommands_mutex;
 
     std::mutex outstream_mutex;
     std::istream& instream;
     std::ostream& outstream;
 
-    //Loads the commands to arrylist
-    void LoadInitialCommands()
-    {
-        std::lock_guard<std::mutex> lock(listofCommands_mutex);
-        listOfCommands.push_back(new cmdOpen());
-        listOfCommands.push_back(new cmdClose());
-    }
+    void split_command_line(const std::string cmdl, std::string& command, command_list_t& args);
 
     bool done = false;
 
 public:
-    virtual Command* GetCommand(const std::string& name)
+    CommandInterface(std::istream& i = std::cin, std::ostream &o = std::cout) :
+        instream(i),
+        outstream(o)
     {
-        std::lock_guard<std::mutex> lock(listofCommands_mutex);
-        for (auto item : listOfCommands)
-        {
-            if (name.compare(item->get_Name()))
-            {
-                return item; //return the command found
-            }
-        }
-        return nullptr; //return if no commands are found
+        CommandInitialise();
     }
 
-    std::list<Command*>& GetCommandList()
-    {
-        return listOfCommands;
-    }
+    void CommandInitialise();
 
-    virtual void AddCommand(Command* c)
-    {
-        std::lock_guard<std::mutex> lock(listofCommands_mutex);
-        listOfCommands.push_back(c);
-    }
+    virtual Command* GetCommand(const std::string& name);
+    command_object_list_t& GetCommandList() { return listOfCommands; }
 
-    virtual void write(const std::string& s)
-    {
-        std::lock_guard<std::mutex> lock(outstream_mutex);
-        outstream << s << "\n";
-    }
+    virtual void AddCommand(Command* c);
 
-    virtual std::string readline()
-    {
-        return string("");
-    }
+    virtual void writeline(const std::string& s);
+    virtual void write(const std::string& s);
+    virtual std::string readline();
 
-    int run()
-    {
-        const std::string prompt(">>>");
-        try
-        {
-            write("Welcome.");
-            write("eventServer command prompt:");
-
-            while (!done)
-            {
-                // output prompt
-                write(prompt);
-                // read a line
-                // work out what command it is
-                // execute command
-
-                // rinse repeat
-            }
-
-            return 0;
-        }
-        catch (...)
-        {
-            return -1;
-        }
-    }
+    int  run();
+    void stop() { done = true; }
+    
 };
-
-    //class Program
-    //{
-    //    static void Main(string[] args)
-    //    {
-    //        //Command pattern example
-    //        CInvoker cmdInvoker = new CInvoker();
-    //        ICommand cmd1 = cmdInvoker.GetCommand("open");
-    //        cmd1.Run();
-    //        cmdInvoker.GetCommand("update").Run();
-    //        //or
-    //        new CInvoker().GetCommand("close").Run();
-    //    }
-    //}

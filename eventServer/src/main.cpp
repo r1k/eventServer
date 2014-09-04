@@ -24,10 +24,29 @@ string getDocRoot(char *argv0)
     return full_path.parent_path().string() + "/doc_root/";
 }
 
+class cmdQuit : public Command
+{
+private:
+    bool& main_quit;
+public:
+    cmdQuit(bool& mainLoop) : 
+        Command("quit", "quits."),
+        main_quit(mainLoop)
+    {}
+
+    void Run()
+    {
+        UI->stop();
+        main_quit = true;
+    }
+    void Run(const command_list_t& args) { Run(); }
+};
+
 int main(int argc, char** argv)
 {
     CommandLineParse clp(argc, argv);
 
+    bool         finished = false;
     string       multicastIPAddress("0.0.0.0");
     int          multicastPortNumber = 5000;
     string       multicastInterface("0.0.0.0");
@@ -35,6 +54,7 @@ int main(int argc, char** argv)
     int          basePort = 8080;
     bool         okay = true;
     const string doc_root = getDocRoot(argv[0]);
+    cmdQuit      quitCommand(finished);
 
     okay = clp.GetStringValue(1, multicastIPAddress);
     okay = clp.GetNumValue(2, multicastPortNumber);
@@ -56,15 +76,13 @@ int main(int argc, char** argv)
 
     interfaceSet = clp.GetStringValue("-i", multicastInterface);
 
-    bool deadInTheWater = false;
-    int failCount = 0;
-
-    while (!deadInTheWater)
+    
+    while (!finished)
     {
         try
         {
             HTTPServer httpServer("0.0.0.0", httpReqPort, doc_root);
-
+            /*
             ClientWebSocketHandler webSockHander;
             appEngine server(multicastIPAddress, 
                              multicastPortNumber, 
@@ -73,16 +91,13 @@ int main(int argc, char** argv)
 
             std::thread t(std::bind(&appEngine::packetProcessor, &server));
             webSockHander.run(webSocketPort);
-
+            */
             CommandInterface ci;
-
-            failCount = 0;
+            ci.AddCommand(&quitCommand);
+            ci.run();
         }
         catch (exception& ex)
         {
-            if (++failCount > 2)
-                deadInTheWater = true;
-
             cout << "Error:" << __FILE__ << ":" << __LINE__ << ":Exception detected - " << ex.what() << endl;
             return -1;
         }
