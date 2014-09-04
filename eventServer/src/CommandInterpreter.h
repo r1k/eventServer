@@ -3,6 +3,8 @@
 #include <list>
 #include <iostream>
 
+#include <mutex>
+
 #include "_no_copy.h"
 
 class Command
@@ -10,46 +12,35 @@ class Command
 public:
     
     Command() {}
-    Command(std::string n, std::string d)
-    {
-        set_Name(n);
-        set_Description(d);
-    }
+    Command(std::string n, std::string d) : name(n), description(d) { }
     ~Command() {}
 
     virtual void Run() = 0;
 
-    std::string get_Name()
-    {
-        return name;
-    }
-    void set_Name(std::string value)
-    {
-        name = value;
-    }
+    std::string get_Name() { return name; }
+    void set_Name(std::string value) { name = value; }
 
-    std::string get_Description()
-    {
-        return description;
-    }
-    void set_Description(std::string value)
-    {
-        description = value;
-    }
+    std::string get_Description() { return description; }
+    void set_Description(std::string value) { description = value; }
 
 protected:
     std::string name;
     std::string description;
 };
 
+class ui : public _no_copy
+{
+public:
+    virtual void AddCommand(Command* c) = 0;
+    virtual Command* GetCommand(std::string name) = 0;
+
+    virtual void write(std::string s) = 0;
+};
+
 class cmdOpen : public Command
 {
 public:
-    cmdOpen()
-        :
-        Command("open", "opens a file")
-    {
-    }
+    cmdOpen() : Command("open", "opens a file") {}
 
     void Run()
     {
@@ -60,11 +51,7 @@ public:
 class cmdClose : public Command
 {
 public:
-    cmdClose()
-        :
-        Command("close", "closes a file")
-    {
-    }
+    cmdClose() : Command("close", "closes a file") {}
 
     void Run()
     {
@@ -72,76 +59,36 @@ public:
     }
 };
 
-class cmdCreate : public Command
+class CommandInterface : public ui
 {
 public:
-    cmdCreate()
-        :
-        Command("create", "creates a file")
-    {
-    }
-
-    void Run()
-    {
-        std::cout << "running create command";
-    }
-};
-
-class cmdUpdate : public Command
-{
-public:
-    cmdUpdate()
-        :
-        Command("update", "updates a file")
-    {
-    }
-
-    void Run()
-    {
-        std::cout << "running update command";
-    }
-};
-
-class cmdRetrieve : public Command
-{
-public:
-    cmdRetrieve()
-        :
-        Command("reterive", "retrieves a file")
-    {
-    }
-
-    void Run()
-    {
-        std::cout << "running reterive command";
-    }
-};
-
-
-class CInvoker : public _no_copy
-{
-public:
-    CInvoker()
+    CommandInterface(std::istream& i=std::cin, std::ostream &o=std::cout) :
+        instream(i),
+        outstream(o)
     {
         LoadCommands();
     }
 private:
     // Array to hold list of commands
     std::list<Command*> listOfCommands;
+    std::mutex listofCommands_mutex;
+
+    std::mutex outstream_mutex;
+    std::istream& instream;
+    std::ostream& outstream;
 
     //Loads the commands to arrylist
     void LoadCommands()
     {
+        std::lock_guard<std::mutex> lock(listofCommands_mutex);
         listOfCommands.push_back(new cmdOpen());
         listOfCommands.push_back(new cmdClose());
-        listOfCommands.push_back(new cmdCreate());
-        listOfCommands.push_back(new cmdUpdate());
-        listOfCommands.push_back(new cmdRetrieve());
     }
 
 public:
     virtual Command* GetCommand(std::string name)
     {
+        std::lock_guard<std::mutex> lock(listofCommands_mutex);
         for (auto item : listOfCommands)
         {
             if (name.compare(item->get_Name()))
@@ -150,6 +97,28 @@ public:
             }
         }
         return nullptr; //return if no commands are found
+    }
+
+    virtual void AddCommand(Command* c)
+    {
+        std::lock_guard<std::mutex> lock(listofCommands_mutex);
+        listOfCommands.push_back(c);
+    }
+
+    virtual void write(std::string s)
+    {
+        std::lock_guard<std::mutex> lock(outstream_mutex);
+        outstream << s << "\n";
+    }
+
+    virtual std::string readline()
+    {
+        return string("");
+    }
+
+    void run()
+    {
+
     }
 };
 

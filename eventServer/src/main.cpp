@@ -7,6 +7,7 @@
 #include "EventEngine.h"
 #include "HttpServer.h"
 #include "CommandInterpreter.h"
+#include "ConfigFileReader.h"
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -72,6 +73,8 @@ int main(int argc, char** argv)
 
             std::thread t(std::bind(&appEngine::packetProcessor, &server));
             webSockHander.run(webSocketPort);
+
+            CommandInterface ci;
 
             failCount = 0;
         }

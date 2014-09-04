@@ -122,6 +122,7 @@
     <ClInclude Include="src\ClientWebSocketHandler.h" />
     <ClInclude Include="src\CommandInterpreter.h" />
     <ClInclude Include="src\CommandLineParse.h" />
+    <ClInclude Include="src\ConfigFileReader.h" />
     <ClInclude Include="src\EventEngine.h" />
     <ClInclude Include="src\HttpServer.h" />
     <ClInclude Include="src\json_parser.h" />
