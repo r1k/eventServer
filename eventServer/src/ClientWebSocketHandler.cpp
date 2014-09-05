@@ -1,6 +1,8 @@
 #include "ClientWebSocketHandler.h"
 
-ClientWebSocketHandler::ClientWebSocketHandler()
+using namespace std;
+
+ClientWebSocketHandler::ClientWebSocketHandler() : port(8081)
 {
     m_server.init_asio();
     m_server.set_open_handler(bind(&ClientWebSocketHandler::on_open, this, _1));
@@ -12,25 +14,37 @@ ClientWebSocketHandler::ClientWebSocketHandler()
 
 ClientWebSocketHandler::~ClientWebSocketHandler()
 {
-    for (auto it : m_connections)
-    {
-        m_server.close(it, websocketpp::close::status::normal, "Success");
-    }
+    stop();
 }
 
 void ClientWebSocketHandler::on_open(connection_hdl hdl)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    lock_guard<mutex> lock(m_mutex);
     m_connections.insert(hdl);
 }
 
 void ClientWebSocketHandler::on_close(connection_hdl hdl)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    lock_guard<mutex> lock(m_mutex);
     m_connections.erase(hdl);
 }
 
 void ClientWebSocketHandler::run(uint16_t port)
+{
+    this->port = port;
+    thrd = make_unique<thread>(&ClientWebSocketHandler::run_thread, this);
+}
+
+void ClientWebSocketHandler::stop()
+{
+    for (auto it : m_connections)
+    {
+        m_server.close(it, websocketpp::close::status::normal, "Success");
+    }
+    m_server.stop();
+}
+
+void ClientWebSocketHandler::run_thread()
 {
     m_server.listen(port);
     m_server.start_accept();
