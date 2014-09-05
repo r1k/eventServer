@@ -39,6 +39,9 @@ protected:
     ui *UI;
     std::string name;
     std::string description;
+
+private:
+    virtual const Command& operator=(const Command&) = delete;
 };
 
 class ui : public _no_copy
@@ -51,6 +54,8 @@ public:
     virtual void writeline(const std::string& s) = 0;
 
     virtual void stop() = 0;
+protected:
+    virtual int run() = 0;
 };
 
 
