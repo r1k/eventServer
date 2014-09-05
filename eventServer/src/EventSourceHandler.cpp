@@ -61,9 +61,13 @@ void EventSourceHandler::message_handler(connection_hdl hdl, msg_ptr p_msg)
     cerr << "Received a message:\n" << endl;
     
     // Handle message
+    hdl.lock().get();
+    std::string msg = p_msg->get_payload();
 
+    
+    std::string response_string;
     // Send response - to single client
-    // controlPort->send(hdl, response_string);
+    controlPort->send(hdl, response_string);
 }
 
 struct connection
@@ -96,11 +100,9 @@ public:
     }
 };
 
-void EventSourceHandler::SendServerListEvent()
+shared_ptr<connection_list> EventSourceHandler::GetServerConnectionList()
 {
-    // Send a list of servers to all clients
-
-    connection_list connections;
+    shared_ptr<connection_list> connections(new connection_list);
     for (auto ws : connection_pair_list)
     {
         connection c;
@@ -109,16 +111,21 @@ void EventSourceHandler::SendServerListEvent()
         port << ws.ws_port;
         c.port = port.str();
         // convert connection details to json string and store
-        connections.data.push_back(c);
+        connections->data.push_back(c);
     }
+    return connections;
+}
 
-    string msg = connections.to_json_string();
+void EventSourceHandler::SendServerListEvent(connection_hdl hdl)
+{
+    // Send a list of servers to all clients
+    controlPort->send(hdl, GetServerConnectionList()->to_json_string());
+}
 
-    for (auto ws : connection_pair_list)
-    {
-        // send message to all clients
-        ws.wbskt->send(msg);
-    }
+void EventSourceHandler::BroadcastServerListEvent()
+{
+    // Send a list of servers to all clients
+    controlPort->send(GetServerConnectionList()->to_json_string());
 }
 
 void EventSourceHandler::stop_all()

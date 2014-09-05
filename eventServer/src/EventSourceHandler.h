@@ -10,6 +10,7 @@
 #include "ClientWebSocketHandler.h"
 
 class appEngine;
+class connection_list;
 
 class SourceWebSocketPair_t
 {
@@ -55,7 +56,10 @@ public:
 
 private:
 
-    void SendServerListEvent();
+    void BroadcastServerListEvent();
+    void SendServerListEvent(connection_hdl hdl);
+
+    std::shared_ptr<connection_list> GetServerConnectionList();
 
     std::shared_ptr<ClientWebSocketHandler> controlPort;
     event_socket_list_t connection_pair_list;
