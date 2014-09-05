@@ -88,3 +88,13 @@ void appEngine::packetProcessor()
         }
     }
 }
+
+void appEngine::run()
+{
+    thrd = make_unique<thread>(&appEngine::packetProcessor, this);
+}
+
+void appEngine::stop()
+{
+
+}

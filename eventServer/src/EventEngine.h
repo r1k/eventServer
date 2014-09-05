@@ -1,5 +1,6 @@
 #pragma once
 
+#include <thread>
 #include "mpeg/inputs/CTransportStreamMulticast.h"
 #include "mpeg/inputs/CTransportStreamFile.h"
 #include "mpeg/engines/CTransportStreamPreProcessor.h"
@@ -36,9 +37,11 @@ private:
 
     CEventDispatcher eventDispatcher;
 
+    std::unique_ptr<std::thread> thrd;
+
 public:
     appEngine(string Multicast_IP,
-        int Multicast_Port,
+        uint16_t Multicast_Port,
         string Multicast_IF,
         ClientWebSocketHandler &wsh)
         : source_ipMulticast(Multicast_IP),
@@ -52,7 +55,7 @@ public:
     }
 
     appEngine(string Multicast_IP,
-        int Multicast_Port,
+        uint16_t Multicast_Port,
         ClientWebSocketHandler &wsh)
         : source_ipMulticast(Multicast_IP),
         source_ipInterface("0.0.0.0"),
@@ -77,4 +80,7 @@ public:
     virtual void onEvent(const CTransportStreamEvent & ev);
 
     void packetProcessor();
+
+    void run();
+    void stop();
 };
