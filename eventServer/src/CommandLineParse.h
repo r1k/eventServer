@@ -15,9 +15,11 @@ public:
 
 	bool GetNumValue	( const string key, int &retvalue );
 	bool GetNumValue	( const int argnum, int &retvalue );
+	bool GetNumValue	( const int argnum, unsigned int &retvalue );
     bool GetNumValue    ( const string key, int64_t *retvalue);
     bool GetNumValue    ( const string key, int *retvalue);
     bool GetNumValue    ( const int argnum, int *retvalue);
+    bool GetNumValue    ( const int argnum, unsigned int *retvalue);
 
 	bool Exists ( const string key );
 

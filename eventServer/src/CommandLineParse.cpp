@@ -68,6 +68,17 @@ bool CommandLineParse::GetNumValue(const string key, int *retvalue)
 	return false;
 }
 
+bool CommandLineParse::GetNumValue(const int argnum, unsigned int *retvalue)
+{
+    if (argnum >= this->arg_num)
+    {
+        *retvalue = -1;
+        return false;
+    }
+    *retvalue = atoi(arg_array[argnum]);
+    return true;
+}
+
 bool CommandLineParse::GetNumValue(const string key, int64_t *retvalue)
 {
 	for(int i = 0; i < this->arg_num; i++)
@@ -90,15 +101,26 @@ bool CommandLineParse::GetNumValue(const string key, int64_t *retvalue)
 	return false;
 }
 
-bool CommandLineParse::GetNumValue ( int argnum, int &retvalue )
+bool CommandLineParse::GetNumValue(int argnum, int &retvalue)
 {
-	if (argnum >= this->arg_num)
-	{
-		retvalue = -1;
-		return false;
-	}
-	retvalue = atoi( arg_array[argnum] );
-	return true;
+    if (argnum >= this->arg_num)
+    {
+        retvalue = -1;
+        return false;
+    }
+    retvalue = atoi(arg_array[argnum]);
+    return true;
+}
+
+bool CommandLineParse::GetNumValue(int argnum, unsigned int &retvalue)
+{
+    if (argnum >= this->arg_num)
+    {
+        retvalue = -1;
+        return false;
+    }
+    retvalue = atoi(arg_array[argnum]);
+    return true;
 }
 
 bool CommandLineParse::GetNumValue ( const string key, int &retvalue )
