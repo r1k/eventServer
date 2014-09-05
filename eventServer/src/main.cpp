@@ -6,6 +6,7 @@
 #include "ClientWebSocketHandler.h"
 #include "EventEngine.h"
 #include "HttpServer.h"
+#include "EventSourceHandler.h"
 #include "CommandInterpreter.h"
 #include "ConfigFileReader.h"
 
@@ -29,7 +30,7 @@ class cmdQuit : public Command
 private:
     bool& main_quit;
 public:
-    cmdQuit(bool& mainLoop) : 
+    cmdQuit(bool& mainLoop) :
         Command("quit", "quits."),
         main_quit(mainLoop)
     {}
@@ -42,16 +43,36 @@ public:
     void Run(const command_list_t& args) { Run(); }
 };
 
+class cmdAddSourceStream : public Command
+{
+private:
+    EventSourceHandler& evh;
+public:
+    cmdAddSourceStream(EventSourceHandler& eventHandler) :
+        Command("AddSourceStream", "Adds a multicast source stream"),
+        evh(eventHandler)
+    {}
+
+    void Run()
+    {
+        UI->writeline("Need to provide details");
+    }
+    void Run(const command_list_t& args) 
+    { 
+        //TODO
+    }
+};
+
 int main(int argc, char** argv)
 {
     CommandLineParse clp(argc, argv);
 
     bool         finished = false;
     string       multicastIPAddress("0.0.0.0");
-    int          multicastPortNumber = 5000;
+    unsigned int multicastPortNumber = 5000;
     string       multicastInterface("0.0.0.0");
     bool         interfaceSet = false;
-    int          basePort = 8080;
+    unsigned int basePort = 8080;
     bool         okay = true;
     const string doc_root = getDocRoot(argv[0]);
     cmdQuit      quitCommand(finished);
@@ -60,8 +81,8 @@ int main(int argc, char** argv)
     okay = clp.GetNumValue(2, multicastPortNumber);
     okay = clp.GetNumValue(3, basePort);
 
-    const int httpReqPort = basePort;
-    const int webSocketPort = basePort + 1;
+    const uint16_t httpReqPort = static_cast<uint16_t>(basePort);
+    const uint16_t webSocketPort = httpReqPort + 1;
     
     if (!okay)
     {
@@ -76,22 +97,15 @@ int main(int argc, char** argv)
 
     interfaceSet = clp.GetStringValue("-i", multicastInterface);
 
-    
+    EventSourceHandler esh(webSocketPort);
     while (!finished)
     {
         try
         {
             HTTPServer httpServer("0.0.0.0", httpReqPort, doc_root);
-            /*
-            ClientWebSocketHandler webSockHander;
-            appEngine server(multicastIPAddress, 
-                             multicastPortNumber, 
-                             multicastInterface, 
-                             webSockHander);
-
-            std::thread t(std::bind(&appEngine::packetProcessor, &server));
-            webSockHander.run(webSocketPort);
-            */
+            
+            esh.CreateStreamServer(multicastIPAddress, static_cast<uint16_t>(multicastPortNumber), multicastInterface);
+                        
             CommandInterface ci;
             ci.AddCommand(&quitCommand);
             ci.run();
