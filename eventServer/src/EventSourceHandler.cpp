@@ -8,6 +8,14 @@
 
 using namespace std;
 
+void EventSourceHandler::CreateControlPort()
+{
+    controlPort = make_shared<ClientWebSocketHandler>();
+
+    controlPort->set_message_handler(this);
+    controlPort->run(base_port);
+}
+
 void EventSourceHandler::CreateStreamServer(std::string multicast_ip,
     uint16_t multicast_port,
     std::string multicast_if)
@@ -21,8 +29,7 @@ void EventSourceHandler::CreateStreamServer(std::string multicast_ip,
 
     connection_pair_list.insert(pair);
 
-    // now start all going
-
+    // now start it going
     ae->run();
     webSockHandler->run(next_port++);
 }
@@ -47,6 +54,16 @@ void EventSourceHandler::StopStreamServer(const SourceWebSocketPair_t& pair)
 {
     pair.evntSrc->stop();
     pair.wbskt->stop();
+}
+
+void EventSourceHandler::message_handler(connection_hdl hdl, msg_ptr p_msg)
+{
+    cerr << "Received a message:\n" << endl;
+    
+    // Handle message
+
+    // Send response - to single client
+    // controlPort->send(hdl, response_string);
 }
 
 struct connection

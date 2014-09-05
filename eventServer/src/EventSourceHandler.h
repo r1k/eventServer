@@ -6,8 +6,9 @@
 #include <set>
 #include <string>
 #include <memory>
+#include <thread>
+#include "ClientWebSocketHandler.h"
 
-class ClientWebSocketHandler;
 class appEngine;
 
 class SourceWebSocketPair_t
@@ -34,11 +35,13 @@ inline bool operator<(const std::shared_ptr<SourceWebSocketPair_t> &lhs, const s
 typedef std::set<SourceWebSocketPair_t> event_socket_list_t;
 
 
-class EventSourceHandler : public _no_copy
+class EventSourceHandler : public message_handler_class_t, public _no_copy
 {
 public:
-    EventSourceHandler(uint16_t port) : base_port(port), next_port(port) {}
+    EventSourceHandler(uint16_t port) : base_port(port), next_port(port+1) {}
     ~EventSourceHandler() {}
+
+    void CreateControlPort();
 
     void CreateStreamServer(std::string multicast_ip,
                             uint16_t multicast_port,
@@ -47,9 +50,14 @@ public:
     void DeleteStreamServer(std::string multicast_ip, uint16_t multicast_port);
     void StopStreamServer(const SourceWebSocketPair_t& pair);
     void stop_all();
+
+    virtual void message_handler(connection_hdl hdl, msg_ptr p_msg);
+
 private:
 
     void SendServerListEvent();
+
+    std::shared_ptr<ClientWebSocketHandler> controlPort;
     event_socket_list_t connection_pair_list;
     const uint16_t base_port;
     uint16_t next_port;
