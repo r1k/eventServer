@@ -39,7 +39,7 @@ typedef std::set<SourceWebSocketPair_t> event_socket_list_t;
 class EventSourceHandler : public message_handler_class_t, public _no_copy
 {
 public:
-    EventSourceHandler(uint16_t port) : base_port(port), next_port(port+1) {}
+    EventSourceHandler(uint16_t port) : base_port(port), next_port(port + 1) { CreateControlPort(); }
     ~EventSourceHandler() {}
 
     void CreateControlPort();
