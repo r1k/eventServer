@@ -30,7 +30,7 @@ class ClientWebSocketHandler : public _no_copy
 {
 public:
 
-    ClientWebSocketHandler();
+    ClientWebSocketHandler(bool debug = false);
     ~ClientWebSocketHandler();
 
     virtual void on_open(connection_hdl hdl);

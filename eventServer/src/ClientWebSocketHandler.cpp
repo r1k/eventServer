@@ -2,14 +2,17 @@
 
 using namespace std;
 
-ClientWebSocketHandler::ClientWebSocketHandler() : port(8081)
+ClientWebSocketHandler::ClientWebSocketHandler(bool debug=false) : port(8081)
 {
     m_server.init_asio();
     m_server.set_open_handler(bind(&ClientWebSocketHandler::on_open, this, _1));
     m_server.set_close_handler(bind(&ClientWebSocketHandler::on_close, this, _1));
     m_server.set_message_handler(bind(&ClientWebSocketHandler::on_message, this, _1, _2));
-    m_server.set_access_channels(websocketpp::log::alevel::none);
-    m_server.set_error_channels(websocketpp::log::elevel::rerror);
+    if (debug)
+    {
+        m_server.set_access_channels(websocketpp::log::alevel::none);
+        m_server.set_error_channels(websocketpp::log::elevel::rerror);
+    }
 }
 
 ClientWebSocketHandler::~ClientWebSocketHandler()
