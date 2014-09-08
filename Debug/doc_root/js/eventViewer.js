@@ -4,13 +4,19 @@ var serverFound = true;
 
 var wsUri = "ws://10.20.9.1:8889";
 
-var msg_handler_list = [];
+var stream_msg_handler_list = [];
+var control_msg_handler_list = [];
 var msgCount = 0;
+var oldmsgCount = 0;
 
-var websocket;
+var stream_websocket;
+var control_websocket;
 
 
-//Data store
+var interval_function;
+
+
+//Stream data store
 var seriesData = [ new Array(0) ];
 var series = [
 		{
@@ -21,95 +27,23 @@ var series = [
 		}
 	]
 
-var QueryString = function ()
+//Source data store
+var sources = [
+  /*
+  {
+    multicastIP: '236.9.1.1',
+    multicastPort: 5000,
+    wsUri: 'localhost:8889'
+  },
+  */
+]
+
+var source_request_message = JSON.stringify({"Request" : "source_list"});
+
+function closingCode()
 {
-  // This function is anonymous, is executed immediately and
-  // the return value is assigned to QueryString!
-  var query_string = {};
-  var query = window.location.search.substring(1);
-  var vars = query.split("&");
-
-  for (var i = 0; i < vars.length; i++)
-  {
-
-    var pair = vars[i].split("=");
-
-    if (typeof query_string[pair[0]] === "undefined")
-    {
-      // If first entry with this name
-      query_string[pair[0]] = pair[1];
-    }
-    else if (typeof query_string[pair[0]] === "string")
-    {
-      // If second entry with this name
-      var arr = [ query_string[pair[0]], pair[1] ];
-      query_string[pair[0]] = arr;
-
-    }
-    else
-    {
-      // If third or later entry with this name
-      query_string[pair[0]].push(pair[1]);
-    }
-  }
-  return query_string;
-};
-
-var prettifyBitrate = function ( br )
-{
-  var units = " bps";
-  br = parseFloat(br);
-
-  if (br > 1000)
-  {
-    br /= 1000;
-    units = " kbps";
-  }
-
-  if (br > 1000)
-  {
-    br /= 1000;
-    units = " Mbps"
-  }
-
-  return parseFloat(br).toFixed(2).toString() + units
-}
-
-var updateDisplay = function ()
-{
-  var tableString = ""
-  var simplebitrateArray = [];
-  var totalBitrate = 0;
-  var i;
-  for (i = 0; i < series.length; i++)
-  {
-    //First grab bitrates
-    var br = series[i].data[series[i].data.length - 1].y;
-    totalBitrate += br;
-    simplebitrateArray.push({name:series[i].name, bitrate:br});
-  }
-
-
-  for (i = 0; i < simplebitrateArray.length; i++)
-  {
-    // then generate table
-
-    var line = '<tr><td>' + simplebitrateArray[i].name + '</td>';
-    line += '<td>' + prettifyBitrate(simplebitrateArray[i].bitrate) + '</td>';
-    var prcnt = simplebitrateArray[i].bitrate*100.00 / totalBitrate;
-    line += '<td><div class="progress"><div class="progress-bar" style="width: ';
-    line += Math.round(10 * Math.pow(prcnt, 0.5)).toString();
-    line += '%;"></div></div></td>';
-    line += '</tr>';
-
-    tableString += line;
-
-  }
-
-  var line = "<tr><td>Total</td><td>" + prettifyBitrate(totalBitrate) + "</td></tr>"
-  tableString += line;
-
-  $('#bitrateTableBody').html(tableString);
+  websocket.close();
+  return null;
 }
 
 var new_bitrate_arrived = function(pid, bitrate, time)
@@ -148,6 +82,8 @@ var new_bitrate_arrived = function(pid, bitrate, time)
                     updated:true
                   });
   }
+
+  msgCount += 1;
 }
 
 var bitrate_event_handler = function(msg)
@@ -195,10 +131,19 @@ var bitrate_list_handler = function(msg)
 			series.shift();
 	  });
   }
+
+  updateBitrateTable(series);
+
+  msgCount += 1;
   return msg;
 }
 
-var filterMessages = function (msg)
+
+
+
+
+
+var filterMessages = function (msg, msg_handler_list)
 {
   var i = 0;
   var processed_msg = null;
@@ -208,85 +153,56 @@ var filterMessages = function (msg)
     if (msg_handler_list[i].type === msg.type)
     {
       processed_msg = msg_handler_list[i].handler(msg);
-      break;
+      return true;
     }
   }
 
-  if (processed_msg)
-  {
-    updateDisplay();
-  }
-  else
-  {
-    console.log("Unkown message received");
-  }
-
-  return processed_msg;
+  console.log("Unkown message received");
+  return false;
 };
 
-function testWebSocket()
+
+function connectWebSocket(ws_uri, msg_handler_list)
 {
   // Create the websocket and configure the callback functions
-  websocket = new WebSocket(wsUri);
-  websocket.onopen = function(evt) { onOpen(evt) };
-  websocket.onclose = function(evt) { onClose(evt) };
-  websocket.onmessage = function(evt) { onMessage(evt) };
-  websocket.onerror = function(evt) { onError(evt) };
+  var websocket = new WebSocket(ws_uri);
+  websocket.onmessage = function(evt) {
+    obj = JSON && JSON.parse(evt.data) || $.parseJSON(evt.data);
+
+    msg = filterMessages(obj, msg_handler_list);
+  };
+
+  return websocket;
 }
 
-function onOpen(evt)
-{
-  console.log("CONNECTED");
-}
 
-function onClose(evt)
-{
-  console.log("DISCONNECTED");
-}
-
-function onMessage(evt)
-{
-  obj = JSON && JSON.parse(evt.data) || $.parseJSON(evt.data);
-
-  msg = filterMessages(obj);
-
-  if (msg)
-  {
-    msgCount += 1;
-    if (msgCount > 10000)
-    {
-      console.log("Stopping msgCount = " + msgCount.toString());
-      websocket.close();
-    }
-  }
-}
-
-function onError(evt)
-{
-  console.log('ERROR: ' + evt.data);
-}
-
-function doSend(message)
+function doSend(message, websocket)
 {
   console.log("SENT: " + message);
-  websocket.send(message);
+
 }
 
-function writeToScreen(message)
-{
-  console.log(message);
-}
 
-function closingCode()
-{
-  websocket.close();
-   return null;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 var main = function() {
 
-  msg_handler_list.push({type:"bitrate_event", handler:bitrate_event_handler});
-  msg_handler_list.push({type:"bitrate_list", handler:bitrate_list_handler});
+  stream_msg_handler_list.push({type:"bitrate_event", handler:bitrate_event_handler});
+  stream_msg_handler_list.push({type:"bitrate_list", handler:bitrate_list_handler});
 
   $('.navmenu-nav > li').click( function()
   {
@@ -298,6 +214,8 @@ var main = function() {
     $('.container').hide();
     $('.container' + $(this).attr('name')).show();
   });
+
+  window.onbeforeunload = closingCode;
 
   QueryString();
 
@@ -321,8 +239,6 @@ var main = function() {
   var server_details = document.getElementById("server");
   server_details.innerHTML += " " + server_address + " " + port;
 
-  //var smoothie = new SmoothieChart();
-  //smoothie.streamTo(document.getElementById("mycanvas"));
 
   $('#setServer').click(function ()
   {
@@ -330,13 +246,15 @@ var main = function() {
       var server_details = document.getElementById("server");
       var details = input_field.value.split(':')
       server_address = details[0]
-      port = details[1]
-      server_details.innerHTML = "Server: " + server_address + " port: " + port;
+      port = parseInt(details[1])
+      server_details.innerHTML = "Server: " + server_address + " port: " + port.toString();
       serverFound = true;
 
-      wsUri = "ws://" + server_address + ":" + port;
+      var control_wsUri = "ws://" + server_address + ":" + port.toString();
+      var stream_wsUri = "ws://" + server_address + ":" + (port+1).toString();
 
-      console.log(wsUri);
+      console.log(control_wsUri);
+      console.log(stream_wsUri);
 
       msgCount = 0;
       seriesData = [ new Array(0) ];
@@ -349,11 +267,31 @@ var main = function() {
                 }
               ]
 
-      testWebSocket();
+      control_websocket = connectWebSocket(control_wsUri, control_msg_handler_list);
+      //control_websocket.send(source_request_message);
+      stream_websocket = connectWebSocket(stream_wsUri, stream_msg_handler_list);
+      //stream_websocket.send(message);
+
+
+      if (interval_function)
+      {
+        clearInterval(interval_function);
+      }
+
+      // Add a function to reset the bitrates when we haven't received an
+      // updated for more than 3 seconds.
+      interval_function = setInterval( function()
+      {
+        if (msgCount === oldmsgCount)
+        {
+          temp = {bitrates:{length:0}};
+          bitrate_list_handler(temp);
+        }
+
+        oldmsgCount = msgCount;
+      }, 3000);
 
   });
-
-  window.onbeforeunload = closingCode;
 
 }
 
