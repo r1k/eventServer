@@ -46,11 +46,11 @@ public:
 class cmdAddSourceStream : public Command
 {
 private:
-    EventSourceHandler& evh;
+    EventSourceHandler& esh;
 public:
     cmdAddSourceStream(EventSourceHandler& eventHandler) :
         Command("AddSourceStream", "Adds a multicast source stream"),
-        evh(eventHandler)
+        esh(eventHandler)
     {}
 
     void Run()
@@ -59,8 +59,14 @@ public:
     }
     void Run(const command_list_t& args) 
     { 
-        //TODO
-    }
+        try
+        {
+            esh.CreateStreamServer(args[0], atoi(args[1].c_str()), args[2]);
+        }
+        catch (...)
+        {
+            UI->writeline("Error adding source connection");
+        }
 };
 
 int main(int argc, char** argv)
