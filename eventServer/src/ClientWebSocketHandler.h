@@ -19,6 +19,7 @@ typedef std::set<connection_hdl, std::owner_less<connection_hdl>> con_list;
 typedef websocketpp::server<websocketpp::config::asio>::message_ptr msg_ptr;
 typedef websocketpp::server<websocketpp::config::asio>::message_handler msg_hndlr;
 
+#define DEFAULT_PORT 8081
 
 class message_handler_class_t
 {
