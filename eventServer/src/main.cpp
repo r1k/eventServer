@@ -57,8 +57,8 @@ public:
     {
         UI->writeline("Need to provide details");
     }
-    void Run(const command_list_t& args) 
-    { 
+    void Run(const command_list_t& args)
+    {
         try
         {
             esh.CreateStreamServer(args[0], atoi(args[1].c_str()), args[2]);
@@ -67,6 +67,7 @@ public:
         {
             UI->writeline("Error adding source connection");
         }
+    }
 };
 
 int main(int argc, char** argv)
