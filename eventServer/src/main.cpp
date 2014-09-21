@@ -111,7 +111,7 @@ int main(int argc, char** argv)
         {
             HTTPServer httpServer("0.0.0.0", httpReqPort, doc_root);
             
-            esh.CreateStreamServer(multicastIPAddress, static_cast<uint16_t>(multicastPortNumber), multicastInterface);
+            //esh.CreateStreamServer(multicastIPAddress, static_cast<uint16_t>(multicastPortNumber), multicastInterface);
                         
             CommandInterface ci;
             ci.AddCommand(&quitCommand);
