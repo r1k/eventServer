@@ -20,18 +20,26 @@ void EventSourceHandler::CreateStreamServer(std::string multicast_ip,
     uint16_t multicast_port,
     std::string multicast_if)
 {
-    shared_ptr<ClientWebSocketHandler> webSockHandler = make_shared<ClientWebSocketHandler>();
-    shared_ptr<appEngine> ae = make_shared<appEngine>(multicast_ip, multicast_port, multicast_if, *webSockHandler);
-    stringstream name;
-    name << multicast_ip << ":" << multicast_port;
+    try
+    {
+        shared_ptr<ClientWebSocketHandler> webSockHandler = make_shared<ClientWebSocketHandler>();
+        shared_ptr<appEngine> ae = make_shared<appEngine>(multicast_ip, multicast_port, multicast_if, *webSockHandler);
+        stringstream name;
+        name << multicast_ip << ":" << multicast_port;
 
-    SourceWebSocketPair_t pair(name.str(), webSockHandler, ae);
+        SourceWebSocketPair_t pair(name.str(), webSockHandler, ae);
 
-    connection_pair_list.insert(pair);
+        connection_pair_list.insert(pair);
 
-    // now start it going
-    ae->run();
-    webSockHandler->run(next_port++);
+        pair.ws_port = next_port++;
+        // now start it going
+        ae->run();
+        webSockHandler->run(pair.ws_port);
+    }
+    catch (...)
+    {
+
+    }
 }
 
 void EventSourceHandler::DeleteStreamServer(std::string multicast_ip, uint16_t multicast_port)
@@ -62,12 +70,37 @@ void EventSourceHandler::message_handler(connection_hdl hdl, msg_ptr p_msg)
     
     // Handle message
     hdl.lock().get();
-    std::string msg = p_msg->get_payload();
+    std::istringstream msg(p_msg->get_payload());
 
+    boost::property_tree::ptree msg_obj;
+    boost::property_tree::read_json(msg, msg_obj);
     
-    std::string response_string;
+    string type = msg_obj.get<std::string>("type");
+
+    if (type == "request")
+    {
+        std::string what = msg_obj.get<std::string>("what");
+
+        if (what == "source_list")
+        {
+            SendServerListEvent(hdl);
+        }
+    }
+    else if (type == "add_source")
+    {
+        string mcast_ip_address = msg_obj.get<std::string>("ip");
+        unsigned short mcast_port = msg_obj.get<unsigned short>("port");
+        string mcast_interface = msg_obj.get<std::string>("interface");
+
+        CreateStreamServer(mcast_ip_address, mcast_port, mcast_interface);
+
+        BroadcastServerListEvent();
+    }
+
+
+    // std::string response_string;
     // Send response - to single client
-    controlPort->send(hdl, response_string);
+    // controlPort->send(hdl, response_string);
 }
 
 struct connection
@@ -96,6 +129,7 @@ public:
 
         std::stringstream ss;
         boost::property_tree::json_parser::write_json(ss, root_pt);
+        cerr << "Debug JSON send: " << ss.str() << endl;
         return ss.str();
     }
 };
