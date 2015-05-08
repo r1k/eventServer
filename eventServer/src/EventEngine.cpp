@@ -32,29 +32,20 @@ bool appEngine::eventFilter(const CTransportStreamEvent & ev)
     const CBitrateEvent * bre = NULL;
     const CBitrateListEvent * brle = NULL;
 
-    if (
-        (pe = dynamic_cast<const CPidEvent *>(pEv))
-        ||
-        (bre = dynamic_cast<const CBitrateEvent *>(pEv))
-        ||
-        (brle = dynamic_cast<const CBitrateListEvent *>(pEv))
-        )
+    if (pe = dynamic_cast<const CPidEvent *>(pEv))
     {
-        if (pe)
-        {
-            if (pe->isDisappearance())
-                wanted = false;
-        }
-        else if (bre)
-        {
-            // cout << "Bitrate message for PID:" << bre->Pid << endl;
+        if (pe->isDisappearance())
             wanted = false;
-        }
-        else if (brle)
-        {
-            // cout << "Sending bitrate list message" << endl;
-            wanted = true;
-        }
+    }
+    else if (bre = dynamic_cast<const CBitrateEvent *>(pEv))
+    {
+        // cout << "Bitrate message for PID:" << bre->Pid << endl;
+        wanted = false;
+    }
+    else if (brle = dynamic_cast<const CBitrateListEvent *>(pEv))
+    {
+        // cout << "Sending bitrate list message" << endl;
+        wanted = true;
     }
 
     return wanted;
