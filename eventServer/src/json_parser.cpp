@@ -9,8 +9,8 @@ int json_parser::to_buffer(const CBitrateEvent &bre)
 {
 	json_spirit::Object message;
 	message.push_back( json_spirit::Pair("type", "bitrate_event"));
-	message.push_back( json_spirit::Pair("pid", (unsigned short)bre.Pid));
-	message.push_back( json_spirit::Pair("bitrate", (unsigned long long)bre.Bitrate));
+	message.push_back( json_spirit::Pair("pid", static_cast<unsigned short>(bre.Pid)));
+	message.push_back( json_spirit::Pair("bitrate", static_cast<uint64_t>(bre.Bitrate)));
 
 	this->s = json_spirit::write_string(json_spirit::Value(message), true);
 
@@ -33,6 +33,3 @@ int json_parser::from_buffer(const void *const buf, const int buf_length, client
 	// interpret and return an object of the appropriate type
 	return 0;
 }
-
-
-

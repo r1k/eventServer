@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <thread>
+#include "make_unique.h"
 
 #include "CommandLineParse.h"
 #include "ClientWebSocketHandler.h"
@@ -90,7 +91,7 @@ int main(int argc, char** argv)
 
     const uint16_t httpReqPort = static_cast<uint16_t>(basePort);
     const uint16_t webSocketPort = httpReqPort + 1;
-    
+
     if (!okay)
     {
         cerr << "Incorrect usage:" << endl;
@@ -110,9 +111,9 @@ int main(int argc, char** argv)
         try
         {
             HTTPServer httpServer("0.0.0.0", httpReqPort, doc_root);
-            
+
             //esh.CreateStreamServer(multicastIPAddress, static_cast<uint16_t>(multicastPortNumber), multicastInterface);
-                        
+
             CommandInterface ci;
             ci.AddCommand(&quitCommand);
             ci.run();

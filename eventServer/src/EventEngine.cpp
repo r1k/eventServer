@@ -1,4 +1,5 @@
 #include "EventEngine.h"
+#include "make_unique.h"
 
 #include "mpeg/inputs/CTransportStreamMulticast.h"
 #include "mpeg/inputs/CTransportStreamFile.h"
